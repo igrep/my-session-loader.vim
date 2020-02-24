@@ -35,7 +35,10 @@ function! my_session_loader#save()
 endfunction
 
 function! my_session_loader#add_buffer(path) abort
-  let buffer_number = bufadd(a:path)
+  " NOTE: bufadd doesn't work with my-project-opener.vim...
+  "let buffer_number = bufadd(a:path)
+  execute "edit " . a:path
+  let buffer_number = bufnr('%')
   let g:_my_session_loader_loaded_files[buffer_number] = a:path
 endfunction
 
