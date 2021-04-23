@@ -44,8 +44,9 @@ function! my_session_loader#save() abort
   call map(files, { _idx, file -> file.path })
   " Save only recently opened N files,
   " where N is g:my_session_loader_how_many_files_to_save.
-  let length = length(files)
-  call writefile(files[(length - g:my_session_loader_how_many_files_to_save):], g:my_session_loader_session_file_name)
+  let length = len(files)
+  let files = length > g:my_session_loader_how_many_files_to_save ? files[(length - g:my_session_loader_how_many_files_to_save):] : files
+  call writefile(files, g:my_session_loader_session_file_name)
 endfunction
 
 function! my_session_loader#add_buffer(path) abort
