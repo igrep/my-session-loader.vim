@@ -1,14 +1,14 @@
 " I consulted unite.vim/plugin/unite/buffer.vim for which events to autocmd and how to handle them.
 
 let g:my_session_loader_session_file_name = ".session_files.txt"
+let g:my_session_loader_how_many_files_to_save = 5
 
 function! my_session_loader#load() abort
   if filereadable(g:my_session_loader_session_file_name)
     for path in readfile(g:my_session_loader_session_file_name)
-      if !filereadable(path)
-        continue
+      if filereadable(path)
+        call my_session_loader#add_buffer(path)
       endif
-      call my_session_loader#add_buffer(path)
     endfor
   endif
 endfunction
@@ -30,11 +30,22 @@ endfunction
 
 " Usually you shouldn't view/edit this!
 let g:_my_session_loader_loaded_files = {}
+let g:_my_session_loader_count = 0
 
-function! my_session_loader#save()
+function! s:compare_by_order(file1, file2) abort
+  return a:file1.order == a:file2.order ? 0 : a:file1.order > a:file2.order ? 1 : -1
+endfunction
+
+function! my_session_loader#save() abort
   call filter(g:_my_session_loader_loaded_files,
-        \ 'buflisted(str2nr(v:key)) && filereadable(a:buffers_dictionary[v:key])')
-  call writefile(values(g:_my_session_loader_loaded_files), g:my_session_loader_session_file_name)
+        \ 'buflisted(str2nr(v:key)) && filereadable(v:val.path)')
+  let files = (values(g:_my_session_loader_loaded_files))
+  call sort(files, funcref("s:compare_by_order"))
+  call map(files, { _idx, file -> file.path })
+  " Save only recently opened N files,
+  " where N is g:my_session_loader_how_many_files_to_save.
+  let length = length(files)
+  call writefile(files[(length - g:my_session_loader_how_many_files_to_save):], g:my_session_loader_session_file_name)
 endfunction
 
 function! my_session_loader#add_buffer(path) abort
@@ -43,10 +54,10 @@ function! my_session_loader#add_buffer(path) abort
   let path = substitute(a:path, '\', '/', 'g')
   execute "edit " . path
   let buffer_number = bufnr('%')
-  let g:_my_session_loader_loaded_files[buffer_number] = path
+  call s:add_path(buffer_number, path)
 endfunction
 
-function! my_session_loader#add_loading_buffer()
+function! my_session_loader#add_loading_buffer() abort
   let path = expand('<amatch>:.')
   let buffer_number = bufnr('%')
 
@@ -54,10 +65,18 @@ function! my_session_loader#add_loading_buffer()
     return
   endif
 
-  let g:_my_session_loader_loaded_files[buffer_number] = substitute(path, '\', '/', 'g')
+  call s:add_path(buffer_number, path)
 endfunction
 
-function! my_session_loader#remove_unloading_buffer()
+function! s:add_path(buffer_number, path) abort
+  let g:_my_session_loader_count += 1
+  let g:_my_session_loader_loaded_files[a:buffer_number] = {
+        \ "path": substitute(a:path, '\', '/', 'g'),
+        \ "order": g:_my_session_loader_count
+        \ }
+endfunction
+
+function! my_session_loader#remove_unloading_buffer() abort
   let buffer_number = bufnr('%')
 
   if bufname(buffer_number) == '' || buffer_number != expand('<abuf>')
