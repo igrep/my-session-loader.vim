@@ -1,7 +1,12 @@
 " I consulted unite.vim/plugin/unite/buffer.vim for which events to autocmd and how to handle them.
 
-let g:my_session_loader_session_file_name = ".session_files.txt"
-let g:my_session_loader_how_many_files_to_save = 5
+if !exists("g:my_session_loader_session_file_name")
+  let g:my_session_loader_session_file_name = ".session_files.txt"
+endif
+
+if !exists("g:my_session_loader_how_many_files_to_save")
+  let g:my_session_loader_how_many_files_to_save = 5
+endif
 
 function! my_session_loader#load() abort
   if filereadable(g:my_session_loader_session_file_name)
